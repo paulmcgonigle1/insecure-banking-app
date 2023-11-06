@@ -10,6 +10,11 @@ namespace Banking_Application
 {
     public class Data_Access_Layer
     {
+        //nowow need to inject key and encryption services
+        //2. Modify Data storage and retrieval for 'addbankaccount' and 'loadbankaccount'
+        //3. Secure key and iv storage
+        //4. Error handling
+        //5. Logging operations
 
         private List<Bank_Account> accounts;
         public static String databaseName = "Banking Database.db";
