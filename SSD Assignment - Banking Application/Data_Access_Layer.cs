@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
+using SSD_Assignment___Banking_Application;
 
 namespace Banking_Application
 {
@@ -87,32 +88,50 @@ namespace Banking_Application
                     while(dr.Read())
                     {
 
+
                         int accountType = dr.GetInt16(7);
 
-                        if(accountType == Account_Type.Current_Account)
+                        // Decrypt each field
+                        string accountNo = Encoding.UTF8.GetString(EncrpytionService.Decrypt(Convert.FromBase64String(dr.GetString(0))));
+                        string name = Encoding.UTF8.GetString(EncrpytionService.Decrypt(Convert.FromBase64String(dr.GetString(1))));
+                        string addressLine1 = Encoding.UTF8.GetString(EncrpytionService.Decrypt(Convert.FromBase64String(dr.GetString(2))));
+                        string addressLine2 = Encoding.UTF8.GetString(EncrpytionService.Decrypt(Convert.FromBase64String(dr.GetString(3))));
+                        string addressLine3 = Encoding.UTF8.GetString(EncrpytionService.Decrypt(Convert.FromBase64String(dr.GetString(4))));
+                        string town = Encoding.UTF8.GetString(EncrpytionService.Decrypt(Convert.FromBase64String(dr.GetString(5))));
+                        double balance = dr.GetDouble(6); 
+                        double overdraftAmount = dr.GetDouble(8);
+                        double interestRate = dr.GetDouble(9);
+                       
+                        if (accountType == Account_Type.Current_Account)
                         {
-                            Current_Account ca = new Current_Account();
-                            ca.accountNo = dr.GetString(0);
-                            ca.name = dr.GetString(1);
-                            ca.address_line_1 = dr.GetString(2);
-                            ca.address_line_2 = dr.GetString(3);
-                            ca.address_line_3 = dr.GetString(4);
-                            ca.town = dr.GetString(5);
-                            ca.balance = dr.GetDouble(6);
-                            ca.overdraftAmount = dr.GetDouble(8);
+                            Current_Account ca = new Current_Account()
+                            {
+                                accountNo = accountNo,
+                                name = name,
+                                address_line_1 = addressLine1,
+                                address_line_2 = addressLine2,
+                                address_line_3 = addressLine3,
+                                town = town,
+                                balance = balance,
+                                overdraftAmount = overdraftAmount
+                            };
+                            
                             accounts.Add(ca);
                         }
                         else
                         {
-                            Savings_Account sa = new Savings_Account();
-                            sa.accountNo = dr.GetString(0);
-                            sa.name = dr.GetString(1);
-                            sa.address_line_1 = dr.GetString(2);
-                            sa.address_line_2 = dr.GetString(3);
-                            sa.address_line_3 = dr.GetString(4);
-                            sa.town = dr.GetString(5);
-                            sa.balance = dr.GetDouble(6);
-                            sa.interestRate = dr.GetDouble(9);
+                            Savings_Account sa = new Savings_Account()
+                            {
+                                accountNo = accountNo,
+                                name = name,
+                                address_line_1 = addressLine1,
+                                address_line_2 = addressLine2,
+                                address_line_3 = addressLine3,
+                                town = town,
+                                balance = balance,
+                                interestRate = interestRate
+                            };
+                            
                             accounts.Add(sa);
                         }
 
@@ -127,12 +146,21 @@ namespace Banking_Application
         public String addBankAccount(Bank_Account ba) 
         {
 
+            
             if (ba.GetType() == typeof(Current_Account))
                 ba = (Current_Account)ba;
             else
                 ba = (Savings_Account)ba;
 
             accounts.Add(ba);
+            //encrpting senstive info
+            byte[] encryptedName = EncrpytionService.Encrypt(Encoding.UTF8.GetBytes(ba.name));
+            byte[] encryptedAccountNum = EncrpytionService.Encrypt(Encoding.UTF8.GetBytes(ba.accountNo));
+            byte[] encryptedAddress1 = EncrpytionService.Encrypt(Encoding.UTF8.GetBytes(ba.address_line_1));
+            byte[] encryptedAddress2 = EncrpytionService.Encrypt(Encoding.UTF8.GetBytes(ba.address_line_2));
+            byte[] encryptedAddress3 = EncrpytionService.Encrypt(Encoding.UTF8.GetBytes(ba.address_line_3));
+            byte[] encryptedTown = EncrpytionService.Encrypt(Encoding.UTF8.GetBytes(ba.town));
+                
 
             using (var connection = getDatabaseConnection())
             {
@@ -141,12 +169,12 @@ namespace Banking_Application
                 command.CommandText =
                 @"
                     INSERT INTO Bank_Accounts VALUES(" +
-                    "'" + ba.accountNo + "', " +
-                    "'" + ba.name + "', " +
-                    "'" + ba.address_line_1 + "', " +
-                    "'" + ba.address_line_2 + "', " +
-                    "'" + ba.address_line_3 + "', " +
-                    "'" + ba.town + "', " +
+                    "'" + Convert.ToBase64String(encryptedAccountNum) + "', " +
+                    "'" + Convert.ToBase64String(encryptedName) + "', " +
+                    "'" + Convert.ToBase64String(encryptedAddress1) + "', " +
+                    "'" + Convert.ToBase64String(encryptedAddress2) + "', " +
+                    "'" + Convert.ToBase64String(encryptedAddress3) + "', " +
+                    "'" + Convert.ToBase64String(encryptedTown) + "', " +
                     ba.balance + ", " +
                     (ba.GetType() == typeof(Current_Account) ? 1 : 2) + ", ";
 

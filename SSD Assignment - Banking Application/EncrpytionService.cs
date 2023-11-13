@@ -8,16 +8,25 @@ namespace SSD_Assignment___Banking_Application
 
 
         //still need to think about securing my keys and IV'S properly and do exception handling
-       
+        private static KeyManagementService keyManagementService = new KeyManagementService("Bankkey", "Microsoft Software Key Storage Provider");
 
         //constructor that initializes the AES provider with a specific key and IV
-        public static byte[] Encrypt(byte[] plaintextData, byte[] key, byte[] iv)
+        public static byte[] Encrypt(byte[] plaintextData)
+
         {
-            using(Aes aes = Aes.Create()){//create a new instance of the AES provider
-              
+            using (Aes aes = keyManagementService.GetAesProvider())
+            {
+
+                // Obtain key and IV from the KeyManagementService
+                byte[] key = aes.Key; // Example, modify based on your implementation
+                byte[] iv = aes.IV;  // Example, modify based on your implementation
+
+
                 aes.KeySize = 128;
                 aes.Mode = CipherMode.CBC; //use cipher block chaining mode
                 aes.Padding = PaddingMode.PKCS7;//allows variable data lengths
+
+                // Set key and IV
                 aes.Key = key;
                 aes.IV = iv;
 
@@ -29,16 +38,21 @@ namespace SSD_Assignment___Banking_Application
                     csEncrypt.FlushFinalBlock();//finalises(disposed at the end of the using block)
                     return msEncrypt.ToArray();//converts encrypted data from stream to a byte array
                 }
+            
             }
+
            
 
         }
-        public static byte[] Decrypt(byte[] ciphertextData, byte[] key, byte[] iv)
+        public static byte[] Decrypt(byte[] ciphertextData)
         {
             //using statements to ensure that resources are freed once operations are complete
 
-            using (Aes aes= Aes.Create())
+            using (Aes aes= keyManagementService.GetAesProvider())
             {
+                byte[] key = aes.Key;
+                byte[] iv = aes.IV;
+                  
                 aes.KeySize = 128;
                 aes.Mode = CipherMode.CBC; //use cipher block chaining mode
                 aes.Padding = PaddingMode.PKCS7;//allows variable data lengths
