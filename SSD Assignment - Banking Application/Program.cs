@@ -8,7 +8,7 @@ namespace Banking_Application
     {
         public static void Main(string[] args)
         {
-            
+
             Data_Access_Layer dal = Data_Access_Layer.getInstance();
             dal.loadBankAccounts();
             bool running = true;
@@ -26,17 +26,17 @@ namespace Banking_Application
                 Console.WriteLine("6. Exit");
                 Console.WriteLine("CHOOSE OPTION:");
                 String option = Console.ReadLine();
-                
-                switch(option)
+
+                switch (option)
                 {
                     case "1":
                         String accountType = "";
                         int loopCount = 0;
-                        
+
                         do
                         {
 
-                           if(loopCount > 0)
+                            if (loopCount > 0)
                                 Console.WriteLine("INVALID OPTION CHOSEN - PLEASE TRY AGAIN");
 
                             Console.WriteLine("");
@@ -84,7 +84,7 @@ namespace Banking_Application
 
                         Console.WriteLine("Enter Address Line 2: ");
                         String addressLine2 = Console.ReadLine();
-                        
+
                         Console.WriteLine("Enter Address Line 3: ");
                         String addressLine3 = Console.ReadLine();
 
@@ -121,7 +121,7 @@ namespace Banking_Application
                                 balance = Convert.ToDouble(balanceString);
                             }
 
-                            catch 
+                            catch
                             {
                                 loopCount++;
                             }
@@ -213,13 +213,14 @@ namespace Banking_Application
                             do
                             {
 
-                                Console.WriteLine("Proceed With Delection (Y/N)?"); 
+                                Console.WriteLine("Proceed With Delection (Y/N)?");
                                 ans = Console.ReadLine();
 
                                 switch (ans)
                                 {
                                     case "Y":
-                                    case "y": dal.closeBankAccount(accNo);
+                                    case "y":
+                                        dal.closeBankAccount(accNo);
                                         break;
                                     case "N":
                                     case "n":
@@ -238,7 +239,7 @@ namespace Banking_Application
 
                         ba = dal.findBankAccountByAccNo(accNo);
 
-                        if(ba is null) 
+                        if (ba is null)
                         {
                             Console.WriteLine("Account Does Not Exist");
                         }
@@ -325,7 +326,7 @@ namespace Banking_Application
 
                             bool withdrawalOK = dal.withdraw(accNo, amountToWithdraw);
 
-                            if(withdrawalOK == false)
+                            if (withdrawalOK == false)
                             {
 
                                 Console.WriteLine("Insufficient Funds Available.");
@@ -335,12 +336,12 @@ namespace Banking_Application
                     case "6":
                         running = false;
                         break;
-                    default:    
+                    default:
                         Console.WriteLine("INVALID OPTION CHOSEN - PLEASE TRY AGAIN");
                         break;
                 }
-                
-                
+
+
             } while (running != false);
 
         }
