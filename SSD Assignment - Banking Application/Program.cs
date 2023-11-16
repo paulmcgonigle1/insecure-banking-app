@@ -8,11 +8,32 @@ namespace Banking_Application
     {
         public static void Main(string[] args)
         {
-            
-            Data_Access_Layer dal = Data_Access_Layer.getInstance();
-            dal.loadBankAccounts();
-            bool running = true;
 
+            Data_Access_Layer dal;
+            //this is all new code ive added in
+            try
+            {
+                dal = Data_Access_Layer.getInstance();
+                dal.loadBankAccounts();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error initializing Data Access Layer: " + ex.Message);
+                Console.WriteLine("Stack Trace: " + ex.StackTrace);
+
+                // If the exception has an inner exception, log that as well
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine("Inner Exception: " + ex.InnerException.Message);
+                    Console.WriteLine("Inner Stack Trace: " + ex.InnerException.StackTrace);
+                }
+
+                // Decide how to proceed
+                return;
+            }
+
+            bool running = true;
+            
             do
             {
 

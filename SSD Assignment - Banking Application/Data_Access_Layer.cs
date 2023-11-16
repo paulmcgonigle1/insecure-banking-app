@@ -143,32 +143,32 @@ namespace Banking_Application
             }
         }
 
-        public String addBankAccount(Bank_Account ba) 
+        public String addBankAccount(Bank_Account ba)
         {
-
-            
             if (ba.GetType() == typeof(Current_Account))
                 ba = (Current_Account)ba;
             else
                 ba = (Savings_Account)ba;
 
             accounts.Add(ba);
-            //encrpting senstive info
+
+            // Encrypting sensitive info
             byte[] encryptedName = EncrpytionService.Encrypt(Encoding.UTF8.GetBytes(ba.name));
             byte[] encryptedAccountNum = EncrpytionService.Encrypt(Encoding.UTF8.GetBytes(ba.accountNo));
             byte[] encryptedAddress1 = EncrpytionService.Encrypt(Encoding.UTF8.GetBytes(ba.address_line_1));
             byte[] encryptedAddress2 = EncrpytionService.Encrypt(Encoding.UTF8.GetBytes(ba.address_line_2));
             byte[] encryptedAddress3 = EncrpytionService.Encrypt(Encoding.UTF8.GetBytes(ba.address_line_3));
             byte[] encryptedTown = EncrpytionService.Encrypt(Encoding.UTF8.GetBytes(ba.town));
-                
 
             using (var connection = getDatabaseConnection())
             {
                 connection.Open();
+
+                // INSERT command to add the account
                 var command = connection.CreateCommand();
                 command.CommandText =
-                @"
-                    INSERT INTO Bank_Accounts VALUES(" +
+                    @"
+            INSERT INTO Bank_Accounts VALUES(" +
                     "'" + Convert.ToBase64String(encryptedAccountNum) + "', " +
                     "'" + Convert.ToBase64String(encryptedName) + "', " +
                     "'" + Convert.ToBase64String(encryptedAddress1) + "', " +
@@ -183,7 +183,6 @@ namespace Banking_Application
                     Current_Account ca = (Current_Account)ba;
                     command.CommandText += ca.overdraftAmount + ", NULL)";
                 }
-
                 else
                 {
                     Savings_Account sa = (Savings_Account)ba;
@@ -193,11 +192,8 @@ namespace Banking_Application
                 command.ExecuteNonQuery();
 
             }
-
             return ba.accountNo;
-
         }
-
         public Bank_Account findBankAccountByAccNo(String accNo) 
         { 
         

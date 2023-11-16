@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Security.Cryptography;
+using System.Text;
+
 namespace SSD_Assignment___Banking_Application
 {
 	public static class EncrpytionService
@@ -8,38 +10,50 @@ namespace SSD_Assignment___Banking_Application
 
 
         //still need to think about securing my keys and IV'S properly and do exception handling
-        private static KeyManagementService keyManagementService = new KeyManagementService("Bankkey", "Microsoft Software Key Storage Provider");
+        private static KeyManagementService keyManagementService = new KeyManagementService("/Users/paulmcgonigle/Documents/Year4/MyAppSecureStorage/keyfile.txt", "/Users/paulmcgonigle/Documents/Year4/MyAppSecureStorage/ivfile.txt");
 
         //constructor that initializes the AES provider with a specific key and IV
         public static byte[] Encrypt(byte[] plaintextData)
 
         {
-            using (Aes aes = keyManagementService.GetAesProvider())
+            try
             {
 
-                // Obtain key and IV from the KeyManagementService
-                byte[] key = aes.Key; // Example, modify based on your implementation
-                byte[] iv = aes.IV;  // Example, modify based on your implementation
-
-
-                aes.KeySize = 128;
-                aes.Mode = CipherMode.CBC; //use cipher block chaining mode
-                aes.Padding = PaddingMode.PKCS7;//allows variable data lengths
-
-                // Set key and IV
-                aes.Key = key;
-                aes.IV = iv;
-
-                using (var msEncrypt = new MemoryStream())//stream to hold encrypted data
-                using (var encryptor = aes.CreateEncryptor()) //creates a symetric aes encryptor
-                using (var csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))// linking encryptor with memory stream
+                using (Aes aes = keyManagementService.GetAesProvider())
                 {
-                    csEncrypt.Write(plaintextData, 0, plaintextData.Length);// encrpyts
-                    csEncrypt.FlushFinalBlock();//finalises(disposed at the end of the using block)
-                    return msEncrypt.ToArray();//converts encrypted data from stream to a byte array
+
+                    // aes.key and aes.iv already set by GetAesProvider
+
+
+                    aes.KeySize = 128;
+                    aes.Mode = CipherMode.CBC; //use cipher block chaining mode
+                    aes.Padding = PaddingMode.PKCS7;//allows variable data lengths
+
+
+
+                    using (var msEncrypt = new MemoryStream())//stream to hold encrypted data
+                    using (var encryptor = aes.CreateEncryptor()) //creates a symetric aes encryptor
+                    {
+                        using (var csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
+                        {
+                            csEncrypt.Write(plaintextData, 0, plaintextData.Length);
+                            csEncrypt.FlushFinalBlock();
+
+                            byte[] encryptedData = msEncrypt.ToArray();
+                            Console.WriteLine($"Encrypted Data: {Convert.ToBase64String(encryptedData)}");
+                            return encryptedData;
+                        }
+                    }
+
                 }
-            
             }
+            catch (CryptographicException ex)
+            {
+
+                Console.WriteLine($"Encryption failed: {ex.Message}");
+                throw;
+            }
+           
 
            
 
@@ -47,30 +61,48 @@ namespace SSD_Assignment___Banking_Application
         public static byte[] Decrypt(byte[] ciphertextData)
         {
             //using statements to ensure that resources are freed once operations are complete
+            try
 
-            using (Aes aes= keyManagementService.GetAesProvider())
             {
-                byte[] key = aes.Key;
-                byte[] iv = aes.IV;
-                  
-                aes.KeySize = 128;
-                aes.Mode = CipherMode.CBC; //use cipher block chaining mode
-                aes.Padding = PaddingMode.PKCS7;//allows variable data lengths
-                aes.Key = key;
-                aes.IV = iv;
 
-                using (var msDecrypt = new MemoryStream(ciphertextData))// stream
-                using (var decryptor = aes.CreateDecryptor())//new symetric AES decryptor
-                using (var csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
+                using (Aes aes = keyManagementService.GetAesProvider())
                 {
-                    byte[] plaintextData = new byte[ciphertextData.Length];//prepare byte array to hold decryped data
-                    int bytesRead = csDecrypt.Read(plaintextData, 0, plaintextData.Length);//decrpyts data
-                    Array.Resize(ref plaintextData, bytesRead);//resise array to actual data lenght
-                    return plaintextData; //return decrypted data as a byte array
+
+                    aes.KeySize = 128;
+                    aes.Mode = CipherMode.CBC; //use cipher block chaining mode
+                    aes.Padding = PaddingMode.PKCS7;//allows variable data lengths
+
+
+                    using (var msDecrypt = new MemoryStream(ciphertextData))// stream for ciphertext
+                    using (var decryptor = aes.CreateDecryptor())//new symetric AES decryptor
+                    using (var csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
+                    {
+                        byte[] plaintextData = new byte[ciphertextData.Length];//prepare byte array to hold decryped data
+                        int bytesRead = csDecrypt.Read(plaintextData, 0, plaintextData.Length);//decrpyts data
+                        Array.Resize(ref plaintextData, bytesRead);//resise array to actual data lenght
+                        Console.WriteLine($"Decrypted Data: {Encoding.UTF8.GetString(plaintextData)}");
+
+                        return plaintextData; //return decrypted data as a byte array
+                    }
+
+
                 }
-
-
             }
+            catch (CryptographicException ex)
+            {
+                Console.WriteLine($"Cryptographic error during decryption: {ex.Message}");
+                // Optionally, rethrow the exception if you want it to be handled further up the call stack
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // Handle other types of exceptions
+                Console.WriteLine($"An error occurred during decryption: {ex.Message}");
+                // Optionally, rethrow the exception
+                throw;
+            }
+
+
         }
         
 
