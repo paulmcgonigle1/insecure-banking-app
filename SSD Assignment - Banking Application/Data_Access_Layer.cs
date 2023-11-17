@@ -19,15 +19,25 @@ namespace Banking_Application
 
         private List<Bank_Account> accounts;
         public static String databaseName = "Banking Database.db";
-        private static Data_Access_Layer instance = new Data_Access_Layer();
+        private static Data_Access_Layer instance;
+        private readonly EncryptionService encryptionService;
+
+
 
         private Data_Access_Layer()//Singleton Design Pattern (For Concurrency Control) - Use getInstance() Method Instead.
         {
+           
             accounts = new List<Bank_Account>();
+            KeyManagementService keyManagementService = new KeyManagementService(/* any required parameters */);
+            encryptionService = new EncryptionService(keyManagementService); // Properly initialized here
         }
 
         public static Data_Access_Layer getInstance()
         {
+            if (instance == null)
+            {
+                instance = new Data_Access_Layer(); // Instance is created here
+            }
             return instance;
         }
 
@@ -88,17 +98,23 @@ namespace Banking_Application
                     while (dr.Read())
                     {
 
+                        string decryptedName = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(dr.GetString(1))));
+                        string decryptedAddressLine1 = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(dr.GetString(2))));
+                        string decryptedAddressLine2 = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(dr.GetString(3))));
+                        string decryptedAddressLine3 = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(dr.GetString(4))));
+                        string decryptedTown = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(dr.GetString(3))));
+
                         int accountType = dr.GetInt16(7);
 
                         if (accountType == Account_Type.Current_Account)
                         {
                             Current_Account ca = new Current_Account();
                             ca.accountNo = dr.GetString(0);
-                            ca.name = dr.GetString(1);
-                            ca.address_line_1 = dr.GetString(2);
-                            ca.address_line_2 = dr.GetString(3);
-                            ca.address_line_3 = dr.GetString(4);
-                            ca.town = dr.GetString(5);
+                            ca.name = decryptedName;
+                            ca.address_line_1 = decryptedAddressLine1;
+                            ca.address_line_2 = decryptedAddressLine2;
+                            ca.address_line_3 = decryptedAddressLine3;
+                            ca.town = decryptedTown;
                             ca.balance = dr.GetDouble(6);
                             ca.overdraftAmount = dr.GetDouble(8);
                             accounts.Add(ca);
@@ -107,11 +123,11 @@ namespace Banking_Application
                         {
                             Savings_Account sa = new Savings_Account();
                             sa.accountNo = dr.GetString(0);
-                            sa.name = dr.GetString(1);
-                            sa.address_line_1 = dr.GetString(2);
-                            sa.address_line_2 = dr.GetString(3);
-                            sa.address_line_3 = dr.GetString(4);
-                            sa.town = dr.GetString(5);
+                            sa.name = decryptedName;
+                            sa.address_line_1 = decryptedAddressLine1;
+                            sa.address_line_2 = decryptedAddressLine2;
+                            sa.address_line_3 = decryptedAddressLine3;
+                            sa.town = decryptedTown;
                             sa.balance = dr.GetDouble(6);
                             sa.interestRate = dr.GetDouble(9);
                             accounts.Add(sa);
@@ -139,17 +155,23 @@ namespace Banking_Application
             {
                 connection.Open();
                 var command = connection.CreateCommand();
-                command.CommandText =
-                @"
-                    INSERT INTO Bank_Accounts VALUES(" +
-                    "'" + ba.accountNo + "', " +
-                    "'" + ba.name + "', " +
-                    "'" + ba.address_line_1 + "', " +
-                    "'" + ba.address_line_2 + "', " +
-                    "'" + ba.address_line_3 + "', " +
-                    "'" + ba.town + "', " +
-                    ba.balance + ", " +
-                    (ba.GetType() == typeof(Current_Account) ? 1 : 2) + ", ";
+
+                // Encrypt PPI data
+                string encryptedName = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.name)));
+                string encryptedAddressLine1 = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.address_line_1)));
+                string encryptedAddressLine2 = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.address_line_2)));
+                string encryptedAddressLine3 = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.address_line_3)));
+                string encryptedTown = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.town)));
+                command.CommandText = $@"
+    INSERT INTO Bank_Accounts VALUES(
+    '{ba.accountNo}', 
+    '{encryptedName}', 
+    '{encryptedAddressLine1}', 
+    '{encryptedAddressLine2}', 
+    '{encryptedAddressLine3}', 
+    '{encryptedTown}', 
+    {ba.balance}, 
+    {(ba.GetType() == typeof(Current_Account) ? 1 : 2)}, ";
 
                 if (ba.GetType() == typeof(Current_Account))
                 {

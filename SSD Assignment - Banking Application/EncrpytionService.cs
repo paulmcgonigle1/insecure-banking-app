@@ -2,60 +2,67 @@
 using System.Security.Cryptography;
 using System.IO;
 using System.Text;
+
 namespace SSD_Assignment___Banking_Application
 {
-	public static class EncrpytionService
-	{
-        // Encrypts plaintext data using the provided AES instance.
-        public static byte[] Encrypt(byte[] plaintextData, Aes aes)
+    public class EncryptionService
+    {
+        private readonly KeyManagementService keyManagementService;
+
+        public EncryptionService(KeyManagementService keyManagementService)
         {
-            using (var msEncrypt = new MemoryStream())
-            using (var encryptor = aes.CreateEncryptor())
-            using (var csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
+            this.keyManagementService = keyManagementService;
+        }
+
+        // Encrypts plaintext data using the AES instance from KeyManagementService.
+        public byte[] Encrypt(byte[] plaintextData)
+        {
+            using (var aes = keyManagementService.InitializeKey())
             {
-                csEncrypt.Write(plaintextData, 0, plaintextData.Length);
-                csEncrypt.FlushFinalBlock();
-                return msEncrypt.ToArray();
+                aes.GenerateIV();
+                var iv = aes.IV;
+
+                aes.Mode = CipherMode.CBC; // Set Cipher Mode
+                aes.Padding = PaddingMode.PKCS7; // Set Padding Mode
+                
+                using (var msEncrypt = new MemoryStream())
+                {
+                    msEncrypt.Write(iv, 0, iv.Length);
+                    using (var encryptor = aes.CreateEncryptor())
+                    using (var csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
+                    {
+                        csEncrypt.Write(plaintextData, 0, plaintextData.Length);
+                        csEncrypt.FlushFinalBlock();
+                        return msEncrypt.ToArray();
+                    }
+                }
+               
             }
         }
 
-        // Decrypts ciphertext data using the provided AES instance.
-        public static byte[] Decrypt(byte[] ciphertextData, Aes aes)
+        // Decrypts ciphertext data using the AES instance from KeyManagementService.
+        public byte[] Decrypt(byte[] ciphertextData)
         {
-            using (var msDecrypt = new MemoryStream(ciphertextData))
-            using (var decryptor = aes.CreateDecryptor())
-            using (var csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
+            using (var aes = keyManagementService.InitializeKey())
             {
-                var plaintextData = new byte[ciphertextData.Length];
-                var bytesRead = csDecrypt.Read(plaintextData, 0, plaintextData.Length);
-                Array.Resize(ref plaintextData, bytesRead);
-                return plaintextData;
-            }
-        }
-
-        // Creates and configures an AES instance with a random key and IV.
-        public static Aes CreateAesInstance()
-        {
-            var aes = Aes.Create("AesManaged");
-            aes.KeySize = 128;
-            aes.Mode = CipherMode.CBC;
-            aes.Padding = PaddingMode.PKCS7;
-
-            using (var rng = new RNGCryptoServiceProvider())
-            {
-                var key = new byte[16];
-                rng.GetBytes(key);
-                aes.Key = key;
-
-                var iv = new byte[16];
-                rng.GetBytes(iv);
+                // Extract the IV from the beginning of the data
+                var iv = new byte[16]; // AES block size is 16 bytes
+                Array.Copy(ciphertextData, 0, iv, 0, iv.Length);
                 aes.IV = iv;
+
+                aes.Mode = CipherMode.CBC;
+                aes.Padding = PaddingMode.PKCS7;
+                using (var msDecrypt = new MemoryStream(ciphertextData, iv.Length, ciphertextData.Length - iv.Length))
+                using (var decryptor = aes.CreateDecryptor())
+                using (var csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
+                {
+                    var plaintextData = new byte[ciphertextData.Length - iv.Length];
+                    var bytesRead = csDecrypt.Read(plaintextData, 0, plaintextData.Length);
+                    Array.Resize(ref plaintextData, bytesRead);
+                    return plaintextData;
+                }
             }
-
-            return aes;
+           
         }
-
     }
 }
-
-
