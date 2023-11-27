@@ -81,6 +81,51 @@ namespace Banking_Application
             }
         }
 
+        public Bank_Account loadBankAccount(string accountNo)
+        {
+            if (!File.Exists(Data_Access_Layer.databaseName))
+                initialiseDatabase();
+            else
+            {
+                using (var connection = getDatabaseConnection())
+                {
+                    connection.Open();
+                    var command = connection.CreateCommand();
+                    command.CommandText = "SELECT * FROM Bank_Accounts WHERE AccountNo = @accountNo";
+                    command.Parameters.AddWithValue("@accountNo", accountNo);
+
+                    using (SqliteDataReader dr = command.ExecuteReader())
+                    {
+                        if (dr.Read())
+                        {
+                            string decryptedName = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(dr.GetString(1))));
+                            string decryptedAddressLine1 = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(dr.GetString(2))));
+                            string decryptedAddressLine2 = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(dr.GetString(3))));
+                            string decryptedAddressLine3 = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(dr.GetString(4))));
+                            string decryptedTown = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(dr.GetString(5))));
+                            double balance = dr.GetDouble(6);
+
+                            int accountType = dr.GetInt16(7);
+
+                            if (accountType == Account_Type.Current_Account)
+                            {
+                                double overdraftAmount = dr.GetDouble(8);
+                                return new Current_Account(decryptedName, decryptedAddressLine1, decryptedAddressLine2, decryptedAddressLine3, decryptedTown, balance, overdraftAmount);
+                            }
+                            else
+                            {
+                                double interestRate = dr.GetDouble(9);
+                                return new Savings_Account(decryptedName, decryptedAddressLine1, decryptedAddressLine2, decryptedAddressLine3, decryptedTown, balance, interestRate);
+                            }
+                        }
+                    } 
+
+           
+                }
+            }
+            return null;
+
+        }
         public void loadBankAccounts()
         {
             if (!File.Exists(Data_Access_Layer.databaseName))
@@ -102,34 +147,21 @@ namespace Banking_Application
                         string decryptedAddressLine1 = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(dr.GetString(2))));
                         string decryptedAddressLine2 = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(dr.GetString(3))));
                         string decryptedAddressLine3 = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(dr.GetString(4))));
-                        string decryptedTown = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(dr.GetString(3))));
+                        string decryptedTown = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(dr.GetString(5))));
+                        double balance = dr.GetDouble(6);
 
                         int accountType = dr.GetInt16(7);
 
                         if (accountType == Account_Type.Current_Account)
                         {
-                            Current_Account ca = new Current_Account();
-                            ca.accountNo = dr.GetString(0);
-                            ca.name = decryptedName;
-                            ca.address_line_1 = decryptedAddressLine1;
-                            ca.address_line_2 = decryptedAddressLine2;
-                            ca.address_line_3 = decryptedAddressLine3;
-                            ca.town = decryptedTown;
-                            ca.balance = dr.GetDouble(6);
-                            ca.overdraftAmount = dr.GetDouble(8);
+                            double overdraftAmount = dr.GetDouble(8);
+                            Current_Account ca = new Current_Account(decryptedName, decryptedAddressLine1, decryptedAddressLine2, decryptedAddressLine3, decryptedTown, balance, overdraftAmount);
                             accounts.Add(ca);
                         }
                         else
                         {
-                            Savings_Account sa = new Savings_Account();
-                            sa.accountNo = dr.GetString(0);
-                            sa.name = decryptedName;
-                            sa.address_line_1 = decryptedAddressLine1;
-                            sa.address_line_2 = decryptedAddressLine2;
-                            sa.address_line_3 = decryptedAddressLine3;
-                            sa.town = decryptedTown;
-                            sa.balance = dr.GetDouble(6);
-                            sa.interestRate = dr.GetDouble(9);
+                            double interestRate = dr.GetDouble(9);
+                            Savings_Account sa = new Savings_Account(decryptedName, decryptedAddressLine1, decryptedAddressLine2, decryptedAddressLine3, decryptedTown, balance, interestRate);
                             accounts.Add(sa);
                         }
 
@@ -157,39 +189,39 @@ namespace Banking_Application
                 var command = connection.CreateCommand();
 
                 // Encrypt PPI data
-                string encryptedName = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.name)));
-                string encryptedAddressLine1 = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.address_line_1)));
-                string encryptedAddressLine2 = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.address_line_2)));
-                string encryptedAddressLine3 = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.address_line_3)));
-                string encryptedTown = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.town)));
+                string encryptedName = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.Name)));
+                string encryptedAddressLine1 = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.Address_Line_1)));
+                string encryptedAddressLine2 = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.Address_Line_2)));
+                string encryptedAddressLine3 = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.Address_Line_3)));
+                string encryptedTown = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.Town)));
                 command.CommandText = $@"
-    INSERT INTO Bank_Accounts VALUES(
-    '{ba.accountNo}', 
-    '{encryptedName}', 
-    '{encryptedAddressLine1}', 
-    '{encryptedAddressLine2}', 
-    '{encryptedAddressLine3}', 
-    '{encryptedTown}', 
-    {ba.balance}, 
-    {(ba.GetType() == typeof(Current_Account) ? 1 : 2)}, ";
+                 INSERT INTO Bank_Accounts VALUES(
+                '{ba.AccountNo}', 
+                '{encryptedName}', 
+                '{encryptedAddressLine1}', 
+                '{encryptedAddressLine2}', 
+                '{encryptedAddressLine3}', 
+                '{encryptedTown}', 
+                    {ba.Balance}, 
+                {(ba.GetType() == typeof(Current_Account) ? 1 : 2)}, ";
 
                 if (ba.GetType() == typeof(Current_Account))
                 {
                     Current_Account ca = (Current_Account)ba;
-                    command.CommandText += ca.overdraftAmount + ", NULL)";
+                    command.CommandText += ca.OverdraftAmmount + ", NULL)";
                 }
 
                 else
                 {
                     Savings_Account sa = (Savings_Account)ba;
-                    command.CommandText += "NULL," + sa.interestRate + ")";
+                    command.CommandText += "NULL," + sa.InterestRate + ")";
                 }
 
                 command.ExecuteNonQuery();
 
             }
 
-            return ba.accountNo;
+            return ba.AccountNo;
 
         }
 
@@ -199,7 +231,7 @@ namespace Banking_Application
             foreach(Bank_Account ba in accounts)
             {
 
-                if (ba.accountNo.Equals(accNo))
+                if (ba.AccountNo.Equals(accNo))
                 {
                     return ba;
                 }
@@ -217,7 +249,7 @@ namespace Banking_Application
             foreach (Bank_Account ba in accounts)
             {
 
-                if (ba.accountNo.Equals(accNo))
+                if (ba.AccountNo.Equals(accNo))
                 {
                     toRemove = ba;
                     break;
@@ -235,7 +267,7 @@ namespace Banking_Application
                 {
                     connection.Open();
                     var command = connection.CreateCommand();
-                    command.CommandText = "DELETE FROM Bank_Accounts WHERE accountNo = '" + toRemove.accountNo + "'";
+                    command.CommandText = "DELETE FROM Bank_Accounts WHERE accountNo = '" + toRemove.AccountNo + "'";
                     command.ExecuteNonQuery();
 
                 }
@@ -253,7 +285,7 @@ namespace Banking_Application
             foreach (Bank_Account ba in accounts)
             {
 
-                if (ba.accountNo.Equals(accNo))
+                if (ba.AccountNo.Equals(accNo))
                 {
                     ba.lodge(amountToLodge);
                     toLodgeTo = ba;
@@ -271,7 +303,7 @@ namespace Banking_Application
                 {
                     connection.Open();
                     var command = connection.CreateCommand();
-                    command.CommandText = "UPDATE Bank_Accounts SET balance = " + toLodgeTo.balance + " WHERE accountNo = '" + toLodgeTo.accountNo + "'";
+                    command.CommandText = "UPDATE Bank_Accounts SET balance = " + toLodgeTo.Balance + " WHERE accountNo = '" + toLodgeTo.AccountNo + "'";
                     command.ExecuteNonQuery();
 
                 }
@@ -290,7 +322,7 @@ namespace Banking_Application
             foreach (Bank_Account ba in accounts)
             {
 
-                if (ba.accountNo.Equals(accNo))
+                if (ba.AccountNo.Equals(accNo))
                 {
                     result = ba.withdraw(amountToWithdraw);
                     toWithdrawFrom = ba;
@@ -308,7 +340,7 @@ namespace Banking_Application
                 {
                     connection.Open();
                     var command = connection.CreateCommand();
-                    command.CommandText = "UPDATE Bank_Accounts SET balance = " + toWithdrawFrom.balance + " WHERE accountNo = '" + toWithdrawFrom.accountNo + "'";
+                    command.CommandText = "UPDATE Bank_Accounts SET balance = " + toWithdrawFrom.Balance + " WHERE accountNo = '" + toWithdrawFrom.AccountNo + "'";
                     command.ExecuteNonQuery();
 
                 }

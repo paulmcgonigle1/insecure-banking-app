@@ -6,10 +6,16 @@ using System.Threading.Tasks;
 
 namespace Banking_Application
 {
-    public class Current_Account: Bank_Account
+    public sealed class Current_Account: Bank_Account
     {
 
-        public double overdraftAmount;
+        private double _overdraftAmount;
+
+        public double OverdraftAmmount
+        {
+            get { return _overdraftAmount; }
+            private set { _overdraftAmount = value; }
+        }
 
         public Current_Account(): base()
         {
@@ -18,7 +24,7 @@ namespace Banking_Application
         
         public Current_Account(String name, String address_line_1, String address_line_2, String address_line_3, String town, double balance, double overdraftAmount) : base(name, address_line_1, address_line_2, address_line_3, town, balance)
         {
-            this.overdraftAmount = overdraftAmount;
+            OverdraftAmmount = overdraftAmount;
         }
 
         public override bool withdraw(double amountToWithdraw)
@@ -27,7 +33,7 @@ namespace Banking_Application
 
             if (avFunds >= amountToWithdraw)
             {
-                balance -= amountToWithdraw;
+                Balance -= amountToWithdraw;
                 return true;
             }
 
@@ -38,7 +44,7 @@ namespace Banking_Application
 
         public override double getAvailableFunds()
         {
-            return (base.balance + overdraftAmount);
+            return (base.Balance + OverdraftAmmount);
         }
 
         public override String ToString()
@@ -46,7 +52,7 @@ namespace Banking_Application
 
             return base.ToString() +
                 "Account Type: Current Account\n" +
-                "Overdraft Amount: " + overdraftAmount + "\n";
+                "Overdraft Amount: " + OverdraftAmmount + "\n";
 
         }
 
