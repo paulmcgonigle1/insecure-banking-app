@@ -10,7 +10,7 @@ namespace Banking_Application
         {
 
             Data_Access_Layer dal = Data_Access_Layer.getInstance();
-            dal.loadBankAccounts();
+            //dal.loadBankAccounts();
             bool running = true;
 
             do
@@ -237,7 +237,7 @@ namespace Banking_Application
                         Console.WriteLine("Enter Account Number: ");
                         accNo = Console.ReadLine();
 
-                        ba = dal.findBankAccountByAccNo(accNo);
+                        ba = dal.loadBankAccount(accNo);
 
                         if (ba is null)
                         {
@@ -253,7 +253,7 @@ namespace Banking_Application
                         Console.WriteLine("Enter Account Number: ");
                         accNo = Console.ReadLine();
 
-                        ba = dal.findBankAccountByAccNo(accNo);
+                        ba = dal.loadBankAccount(accNo);
 
                         if (ba is null)
                         {
@@ -292,7 +292,7 @@ namespace Banking_Application
                         Console.WriteLine("Enter Account Number: ");
                         accNo = Console.ReadLine();
 
-                        ba = dal.findBankAccountByAccNo(accNo);
+                        ba = dal.loadBankAccount(accNo);
 
                         if (ba is null)
                         {
