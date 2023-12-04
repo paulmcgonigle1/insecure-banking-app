@@ -126,52 +126,7 @@ namespace Banking_Application
             return null;
 
         }
-        //public void loadBankAccounts()
-        //{
-        //    if (!File.Exists(Data_Access_Layer.databaseName))
-        //        initialiseDatabase();
-        //    else
-        //    {
-
-        //        using (var connection = getDatabaseConnection())
-        //        {
-        //            connection.Open();
-        //            var command = connection.CreateCommand();
-        //            command.CommandText = "SELECT * FROM Bank_Accounts";
-        //            SqliteDataReader dr = command.ExecuteReader();
-
-        //            while (dr.Read())
-        //            {
-
-        //                string decryptedName = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(dr.GetString(1))));
-        //                string decryptedAddressLine1 = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(dr.GetString(2))));
-        //                string decryptedAddressLine2 = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(dr.GetString(3))));
-        //                string decryptedAddressLine3 = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(dr.GetString(4))));
-        //                string decryptedTown = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(dr.GetString(5))));
-        //                double balance = dr.GetDouble(6);
-
-        //                int accountType = dr.GetInt16(7);
-
-        //                if (accountType == Account_Type.Current_Account)
-        //                {
-        //                    double overdraftAmount = dr.GetDouble(8);
-        //                    Current_Account ca = new Current_Account(decryptedName, decryptedAddressLine1, decryptedAddressLine2, decryptedAddressLine3, decryptedTown, balance, overdraftAmount);
-        //                    accounts.Add(ca);
-        //                }
-        //                else
-        //                {
-        //                    double interestRate = dr.GetDouble(9);
-        //                    Savings_Account sa = new Savings_Account(decryptedName, decryptedAddressLine1, decryptedAddressLine2, decryptedAddressLine3, decryptedTown, balance, interestRate);
-        //                    accounts.Add(sa);
-        //                }
-
-
-        //            }
-
-        //        }
-
-        //    }
-        //}
+        
 
         public String addBankAccount(Bank_Account ba)
         {
@@ -187,35 +142,40 @@ namespace Banking_Application
             {
                 connection.Open();
                 var command = connection.CreateCommand();
-
+                
                 // Encrypt PPI data
                 string encryptedName = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.Name)));
                 string encryptedAddressLine1 = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.Address_Line_1)));
                 string encryptedAddressLine2 = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.Address_Line_2)));
                 string encryptedAddressLine3 = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.Address_Line_3)));
                 string encryptedTown = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.Town)));
-                command.CommandText = $@"
-                 INSERT INTO Bank_Accounts VALUES(
-                '{ba.AccountNo}', 
-                '{encryptedName}', 
-                '{encryptedAddressLine1}', 
-                '{encryptedAddressLine2}', 
-                '{encryptedAddressLine3}', 
-                '{encryptedTown}', 
-                    {ba.Balance}, 
-                {(ba.GetType() == typeof(Current_Account) ? 1 : 2)}, ";
+               
+                command.CommandText = @"
+                INSERT INTO Bank_Accounts (accountNo, name, address_line_1, address_line_2, address_line_3, town, balance, accountType, overdraftAmount, interestRate)
+                VALUES (@AccountNo, @Name, @AddressLine1, @AddressLine2, @AddressLine3, @Town, @Balance, @AccountType, @OverdraftAmount, @InterestRate)
+                ";
+                command.Parameters.AddWithValue("@AccountType", ba is Current_Account ? 1 : 2);
+                command.Parameters.AddWithValue("@AccountNo", ba.AccountNo);
+                command.Parameters.AddWithValue("@Name", encryptedName);
+                command.Parameters.AddWithValue("@AddressLine1", encryptedAddressLine1);
+                command.Parameters.AddWithValue("@AddressLine2", encryptedAddressLine2);
+                command.Parameters.AddWithValue("@AddressLine3", encryptedAddressLine3);
+                command.Parameters.AddWithValue("@Town", encryptedTown);
+                command.Parameters.AddWithValue("@Balance", ba.Balance);
 
                 if (ba.GetType() == typeof(Current_Account))
                 {
                     Current_Account ca = (Current_Account)ba;
-                    command.CommandText += ca.OverdraftAmmount + ", NULL)";
+                    command.Parameters.AddWithValue("@OverdraftAmount", ca.OverdraftAmmount);
+                    command.Parameters.AddWithValue("@InterestRate", DBNull.Value);
                 }
-
                 else
                 {
                     Savings_Account sa = (Savings_Account)ba;
-                    command.CommandText += "NULL," + sa.InterestRate + ")";
+                    command.Parameters.AddWithValue("@InterestRate", sa.InterestRate);
+                    command.Parameters.AddWithValue("@OverdraftAmount", DBNull.Value);
                 }
+
 
                 command.ExecuteNonQuery();
 
