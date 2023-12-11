@@ -6,7 +6,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using SSD_Assignment___Banking_Application;
-
+using System.Diagnostics;
+using System.Threading;
 namespace Banking_Application
 {
     public class Data_Access_Layer
@@ -22,7 +23,23 @@ namespace Banking_Application
         private static Data_Access_Layer instance;
         private readonly EncryptionService encryptionService;
 
-
+        //setup for the eventLogger
+        public static void SetupEventLogSource()
+        {
+            if (!EventLog.SourceExists("MyBankApp"))
+            {
+                EventLog.CreateEventSource("MyBankApp", "Application");
+            }
+        }
+        //method for logging with ease
+        private void Log(string message, EventLogEntryType type = EventLogEntryType.Information)
+        {
+            using (EventLog eventLog = new EventLog("Application"))
+            {
+                eventLog.Source = "MyBankApp";
+                eventLog.WriteEntry(message, type);
+            }
+        }
 
         private Data_Access_Layer()//Singleton Design Pattern (For Concurrency Control) - Use getInstance() Method Instead.
         {
@@ -178,9 +195,11 @@ namespace Banking_Application
 
 
                 command.ExecuteNonQuery();
+                // Log the successful addition of a bank account
+               
 
             }
-
+            Log($"Bank account {ba.AccountNo} added successfully.");
             return ba.AccountNo;
 
         }
@@ -193,29 +212,38 @@ namespace Banking_Application
 
         public bool closeBankAccount(String accNo) 
         {
-
-            Bank_Account toRemove = loadBankAccount(accNo);
-
-            if (toRemove == null)
+            try
             {
-                // Account not found in the database
-                return false;
-            }
-            else
-            {
-                // Account found, proceed with deletion
-                using (var connection = getDatabaseConnection())
+                Bank_Account toRemove = loadBankAccount(accNo);
+
+                if (toRemove == null)
                 {
-                    connection.Open();
-                    var command = connection.CreateCommand();
-                    command.CommandText = "DELETE FROM Bank_Accounts WHERE accountNo = @accountNo";
-                    command.Parameters.AddWithValue("@accountNo", accNo); // Use parameterized query for security
-                    command.ExecuteNonQuery();
+                    // Account not found in the database
+                    Log($"Attempted to close non-existing account {accNo}", EventLogEntryType.Warning);
+                    return false;
                 }
+                else
+                {
+                    // Account found, proceed with deletion
+                    using (var connection = getDatabaseConnection())
+                    {
+                        connection.Open();
+                        var command = connection.CreateCommand();
+                        command.CommandText = "DELETE FROM Bank_Accounts WHERE accountNo = @accountNo";
+                        command.Parameters.AddWithValue("@accountNo", accNo); // Use parameterized query for security
+                        command.ExecuteNonQuery();
+                    }
 
-                
 
-                return true;
+                    Log($"Bank account {accNo} closed successfully.");
+
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log($"Error closing account {accNo}: {ex.Message}", EventLogEntryType.Error);
+                return false;
             }
 
         }
