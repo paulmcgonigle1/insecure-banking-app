@@ -92,7 +92,8 @@ namespace Banking_Application
 
         private Data_Access_Layer()//Singleton Design Pattern (For Concurrency Control) - Use getInstance() Method Instead.
         {
-           
+            initialiseDatabase(); // Ensure the database and table are initialized
+
             //accounts = new List<Bank_Account>();
             KeyManagementService keyManagementService = new KeyManagementService(/* any required parameters */);
             encryptionService = new EncryptionService(keyManagementService); // Properly initialized here
@@ -138,7 +139,8 @@ namespace Banking_Application
                         balance REAL NOT NULL,
                         accountType INTEGER NOT NULL,
                         overdraftAmount REAL,
-                        interestRate REAL
+                        interestRate REAL,
+                        dataHash TEXT
                     ) WITHOUT ROWID
                 ";
 
@@ -148,52 +150,70 @@ namespace Banking_Application
         }
 
         public Bank_Account loadBankAccount(string accountNo)
+{
+    if (!File.Exists(Data_Access_Layer.databaseName))
+        initialiseDatabase();
+    else
+    {
+        using (var connection = getDatabaseConnection())
         {
-            if (!File.Exists(Data_Access_Layer.databaseName))
-                initialiseDatabase();
-            else
+            connection.Open();
+            var command = connection.CreateCommand();
+            command.CommandText = "SELECT * FROM Bank_Accounts WHERE AccountNo = @accountNo";
+            command.Parameters.AddWithValue("@accountNo", accountNo);
+
+            using (SqliteDataReader dr = command.ExecuteReader())
             {
-                using (var connection = getDatabaseConnection())
+                if (dr.Read())
                 {
-                    connection.Open();
-                    var command = connection.CreateCommand();
-                    command.CommandText = "SELECT * FROM Bank_Accounts WHERE AccountNo = @accountNo";
-                    command.Parameters.AddWithValue("@accountNo", accountNo);
+                    // Read encrypted data directly
+                    string encryptedName = dr.GetString(1);
+                    string encryptedAddressLine1 = dr.GetString(2);
+                    string encryptedAddressLine2 = dr.GetString(3);
+                    string encryptedAddressLine3 = dr.GetString(4);
+                    string encryptedTown = dr.GetString(5);
+                    double balance = dr.GetDouble(6);
 
-                    using (SqliteDataReader dr = command.ExecuteReader())
+                    // Use encrypted data for hash generation
+                    string loadedData = $"{encryptedName}{encryptedAddressLine1}{encryptedAddressLine2}{encryptedAddressLine3}{encryptedTown}{balance}";
+                    string regeneratedHash = HashUtility.GenerateHash(loadedData);
+
+                   
+
+                    // Compare with the stored hash
+                    string storedHash = dr.GetString(10);
+                    Console.WriteLine($"Debug - Stored Hash: {storedHash}");
+
+                    if (regeneratedHash != storedHash)
                     {
-                        if (dr.Read())
-                        {
-                            string decryptedName = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(dr.GetString(1))));
-                            string decryptedAddressLine1 = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(dr.GetString(2))));
-                            string decryptedAddressLine2 = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(dr.GetString(3))));
-                            string decryptedAddressLine3 = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(dr.GetString(4))));
-                            string decryptedTown = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(dr.GetString(5))));
-                            double balance = dr.GetDouble(6);
+                        throw new InvalidOperationException("Data integrity check failed for account " + accountNo);
+                    }
 
-                            int accountType = dr.GetInt16(7);
+                    // Decrypt the data after hash verification
+                    string decryptedName = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(encryptedName)));
+                    string decryptedAddressLine1 = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(encryptedAddressLine1)));
+                    string decryptedAddressLine2 = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(encryptedAddressLine2)));
+                    string decryptedAddressLine3 = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(encryptedAddressLine3)));
+                    string decryptedTown = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(encryptedTown)));
 
-                            if (accountType == Account_Type.Current_Account)
-                            {
-                                double overdraftAmount = dr.GetDouble(8);
-                                return new Current_Account(decryptedName, decryptedAddressLine1, decryptedAddressLine2, decryptedAddressLine3, decryptedTown, balance, overdraftAmount);
-                            }
-                            else
-                            {
-                                double interestRate = dr.GetDouble(9);
-                                return new Savings_Account(decryptedName, decryptedAddressLine1, decryptedAddressLine2, decryptedAddressLine3, decryptedTown, balance, interestRate);
-                            }
-                        }
-                    } 
-
-           
+                    int accountType = dr.GetInt16(7);
+                     
+                    if (accountType == Account_Type.Current_Account)
+                    {
+                        double overdraftAmount = dr.GetDouble(8);
+                        return new Current_Account(decryptedName, decryptedAddressLine1, decryptedAddressLine2, decryptedAddressLine3, decryptedTown, balance, overdraftAmount);
+                    }
+                    else
+                    {
+                        double interestRate = dr.GetDouble(9);
+                        return new Savings_Account(decryptedName, decryptedAddressLine1, decryptedAddressLine2, decryptedAddressLine3, decryptedTown, balance, interestRate);
+                    }
                 }
-                //Log($"Successfully loaded account {accountNo} at {DateTime.Now}", EventLogEntryType.SuccessAudit);
-            }
-            return null;
-
+            } 
         }
-        
+    }
+    return null;
+}
 
         public String addBankAccount(Bank_Account ba)
         {
@@ -236,10 +256,14 @@ namespace Banking_Application
                 string encryptedAddressLine2 = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.Address_Line_2)));
                 string encryptedAddressLine3 = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.Address_Line_3)));
                 string encryptedTown = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.Town)));
+
+                // Generate a hash of the account data
+                string accountData = $"{encryptedName}{encryptedAddressLine1}{encryptedAddressLine2}{encryptedAddressLine3}{encryptedTown}{ba.Balance}";
+                string dataHash = HashUtility.GenerateHash(accountData);
                
                 command.CommandText = @"
-                INSERT INTO Bank_Accounts (accountNo, name, address_line_1, address_line_2, address_line_3, town, balance, accountType, overdraftAmount, interestRate)
-                VALUES (@AccountNo, @Name, @AddressLine1, @AddressLine2, @AddressLine3, @Town, @Balance, @AccountType, @OverdraftAmount, @InterestRate)
+                INSERT INTO Bank_Accounts (accountNo, name, address_line_1, address_line_2, address_line_3, town, balance, accountType, overdraftAmount, interestRate, dataHash)
+                VALUES (@AccountNo, @Name, @AddressLine1, @AddressLine2, @AddressLine3, @Town, @Balance, @AccountType, @OverdraftAmount, @InterestRate, @DataHash)
                 ";
                 command.Parameters.AddWithValue("@AccountType", ba is Current_Account ? 1 : 2);
                 command.Parameters.AddWithValue("@AccountNo", ba.AccountNo);
@@ -249,6 +273,7 @@ namespace Banking_Application
                 command.Parameters.AddWithValue("@AddressLine3", encryptedAddressLine3);
                 command.Parameters.AddWithValue("@Town", encryptedTown);
                 command.Parameters.AddWithValue("@Balance", ba.Balance);
+                command.Parameters.AddWithValue("@DataHash", dataHash); // Add the hash as a parameter
 
                 if (ba.GetType() == typeof(Current_Account))
                 {
@@ -438,7 +463,10 @@ namespace Banking_Application
                     command.Parameters.AddWithValue("@balance", toWithdrawFrom.Balance);
                     command.Parameters.AddWithValue("@accountNo", accNo); // Use parameterized query for security
                     command.ExecuteNonQuery();
+
+
                 }
+
 
                 //Log($"Succesfully withdrew from account account {accNo}: ammount - {amountToWithdraw} at {DateTime.Now}", EventLogEntryType.Error);
 
