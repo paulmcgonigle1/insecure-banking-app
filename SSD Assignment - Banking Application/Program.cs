@@ -207,8 +207,16 @@ namespace Banking_Application
 
                         String accNo = dal.addBankAccount(ba);
 
-                        Console.WriteLine("New Account Number Is: " + accNo);
-
+                        if (!string.IsNullOrEmpty(accNo))
+                        {
+                            // The account was added successfully, print the account number
+                            Console.WriteLine("New Account Number Is: " + accNo);
+                        }
+                        else
+                        {
+                            // The account was not added, handle the failure (e.g., print an error message)
+                            Console.WriteLine("Failed to add a new account.");
+                        }
                         break;
                     case "2":
                         Console.WriteLine("Enter Account Number: ");

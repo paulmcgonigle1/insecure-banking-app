@@ -41,6 +41,55 @@ namespace Banking_Application
         //    }
         //}
 
+        //ddos checking if there is enough disk space
+        public static bool IsEnoughDiskSpace(long minRequiredSpace)
+        {
+            try
+            {
+                DriveInfo drive = new DriveInfo(Path.GetPathRoot(Environment.CurrentDirectory));
+
+                //// Check if the drive is ready to ensure it is accessible
+                //if (drive.IsReady)
+                //{
+                //    Console.WriteLine($"Drive {drive.Name}");
+                //    Console.WriteLine($"Available free space: {drive.AvailableFreeSpace} bytes");
+                //}
+                //else
+                //{
+                //    Console.WriteLine($"Drive {drive.Name} is not ready.");
+                //}
+                return drive.IsReady && drive.AvailableFreeSpace > minRequiredSpace;
+
+
+                
+            }
+            catch (Exception ex)
+            {                
+                return false;
+            }
+        }
+        public static bool IsMemoryUsageAcceptable(long maxAllowedMemory)
+        {
+            using (Process currentProcess = Process.GetCurrentProcess())
+            {
+                // Refresh the process info to get updated values
+                currentProcess.Refresh();
+
+                //Console.WriteLine($"Current memory usage: {currentProcess.PrivateMemorySize64} bytes");
+
+                if (currentProcess.PrivateMemorySize64 > maxAllowedMemory)
+                {
+                    //Console.WriteLine($"Memory usage exceeds the acceptable limit of {maxAllowedMemory} bytes.");
+                    return false;
+                }
+                else
+                {
+                    //Console.WriteLine($"Memory usage is within the acceptable limit of {maxAllowedMemory} bytes.");
+                    return true;
+                }
+            }
+        }
+
         private Data_Access_Layer()//Singleton Design Pattern (For Concurrency Control) - Use getInstance() Method Instead.
         {
            
@@ -148,6 +197,26 @@ namespace Banking_Application
 
         public String addBankAccount(Bank_Account ba)
         {
+            const long requiredDiskSpace = 500; // bytes
+            const long maxAllowedMemory = 1000000000; // Example: 1 GB
+
+            //checking disk space
+            if (!IsEnoughDiskSpace(requiredDiskSpace))
+            {
+                Console.WriteLine("There is not sufficient Disk Space to run operation");
+                //Log($"Insufficient disk space to add new bank account {ba.AccountNo} at {DateTime.Now}", EventLogEntryType.Warning);
+                return null; // or throw an exception
+            }
+
+            // Check memory usage
+            if (!IsMemoryUsageAcceptable(maxAllowedMemory))
+            {
+                Console.WriteLine("Insufficient Memory to add a new bank account.");
+                //Log($"Insufficient memory space to add new bank account {ba.AccountNo} at {DateTime.Now}", EventLogEntryType.Warning);
+
+                return null; // or throw an exception
+            }
+
 
             if (ba.GetType() == typeof(Current_Account))
                 ba = (Current_Account)ba;
@@ -213,8 +282,29 @@ namespace Banking_Application
 
         public bool closeBankAccount(String accNo) 
         {
+            // Disk space check
+            long requiredSpace = 500;
+            const long maxAllowedMemory = 1000000000; // Example: 1 GB
+
+            if (!IsEnoughDiskSpace(requiredSpace))
+            {
+                //Log($"Insufficient disk space to close bank account at {DateTime.Now}", EventLogEntryType.Warning);
+                return false; // or throw an exception
+            }
+
+            // Check memory usage
+            if (!IsMemoryUsageAcceptable(maxAllowedMemory))
+            {
+                Console.WriteLine("Insufficient Memory to add a new bank account.");
+                //Log($"Insufficient memory space to add new bank account {ba.AccountNo} at {DateTime.Now}", EventLogEntryType.Warning);
+
+                return false; // or throw an exception
+            }
+
+
             try
             {
+
                 Bank_Account toRemove = loadBankAccount(accNo);
 
                 if (toRemove == null)
@@ -251,6 +341,25 @@ namespace Banking_Application
 
         public bool lodge(String accNo, double amountToLodge)
         {
+            // Disk space check
+            long requiredSpace = 500;
+            const long maxAllowedMemory = 1000000000; // Example: 1 GB
+
+            if (!IsEnoughDiskSpace(requiredSpace))
+            {
+                //Log($"Insufficient disk space to lodge to bank account {accNo} at {DateTime.Now}", EventLogEntryType.Warning);
+                return false; // or throw an exception
+            }
+
+            // Check memory usage
+            if (!IsMemoryUsageAcceptable(maxAllowedMemory))
+            {
+                Console.WriteLine("Insufficient Memory to add a new bank account.");
+                //Log($"Insufficient memory space to add new bank account {ba.AccountNo} at {DateTime.Now}", EventLogEntryType.Warning);
+
+                return false; // or throw an exception
+            }
+
 
             Bank_Account toLodgeTo = loadBankAccount(accNo);
 
@@ -284,6 +393,26 @@ namespace Banking_Application
 
         public bool withdraw(String accNo, double amountToWithdraw)
         {
+
+            // Disk space check
+            long requiredSpace = 500;
+            const long maxAllowedMemory = 1000000000; // Example: 1 GB
+
+            if (!IsEnoughDiskSpace(requiredSpace))
+            {
+                //Log($"Insufficient disk space to withdraw from bank account {accNo} at {DateTime.Now}", EventLogEntryType.Warning);
+                return false; // or throw an exception
+            }
+
+            // Check memory usage
+            if (!IsMemoryUsageAcceptable(maxAllowedMemory))
+            {
+                Console.WriteLine("Insufficient Memory to add a new bank account.");
+                //Log($"Insufficient memory space to add new bank account {ba.AccountNo} at {DateTime.Now}", EventLogEntryType.Warning);
+
+                return false; // or throw an exception
+            }
+
 
             Bank_Account toWithdrawFrom = loadBankAccount(accNo); ;
         
