@@ -32,14 +32,14 @@ namespace Banking_Application
             }
         }
         //method for logging with ease
-        private void Log(string message, EventLogEntryType type = EventLogEntryType.Information)
-        {
-            using (EventLog eventLog = new EventLog("Application"))
-            {
-                eventLog.Source = "MyBankApp";
-                eventLog.WriteEntry(message, type);
-            }
-        }
+        //private void Log(string message, EventLogEntryType type = EventLogEntryType.Information)
+        //{
+        //    using (EventLog eventLog = new EventLog("Application"))
+        //    {
+        //        eventLog.Source = "MyBankApp";
+        //        eventLog.WriteEntry(message, type);
+        //    }
+        //}
 
         private Data_Access_Layer()//Singleton Design Pattern (For Concurrency Control) - Use getInstance() Method Instead.
         {
@@ -139,6 +139,7 @@ namespace Banking_Application
 
            
                 }
+                //Log($"Successfully loaded account {accountNo} at {DateTime.Now}", EventLogEntryType.SuccessAudit);
             }
             return null;
 
@@ -199,7 +200,7 @@ namespace Banking_Application
                
 
             }
-            Log($"Bank account {ba.AccountNo} added successfully.");
+            //Log($"Bank account {ba.AccountNo} added successfully at {DateTime.Now}.", EventLogEntryType.SuccessAudit);
             return ba.AccountNo;
 
         }
@@ -219,7 +220,7 @@ namespace Banking_Application
                 if (toRemove == null)
                 {
                     // Account not found in the database
-                    Log($"Attempted to close non-existing account {accNo}", EventLogEntryType.Warning);
+                    //Log($"Attempted to close non-existing account {accNo} at {DateTime.Now}", EventLogEntryType.Warning);
                     return false;
                 }
                 else
@@ -235,14 +236,14 @@ namespace Banking_Application
                     }
 
 
-                    Log($"Bank account {accNo} closed successfully.");
+                    //Log($"Bank account {accNo} closed successfully at {DateTime.Now}.");
 
                     return true;
                 }
             }
             catch (Exception ex)
             {
-                Log($"Error closing account {accNo}: {ex.Message}", EventLogEntryType.Error);
+                //Log($"Error closing account {accNo}: {ex.Message} at {DateTime.Now}", EventLogEntryType.Error);
                 return false;
             }
 
@@ -255,6 +256,7 @@ namespace Banking_Application
 
             if (toLodgeTo == null)
             {
+                //Log($"Failed to lodge into account {accNo}: ammount - {amountToLodge} at {DateTime.Now}", EventLogEntryType.Error);
                 return false; // Account not found
             }
             else
@@ -273,7 +275,8 @@ namespace Banking_Application
                     command.ExecuteNonQuery();
                 }
 
-                
+
+                //Log($"Succesfully lodged into account {accNo}: ammount - {amountToLodge} at {DateTime.Now}", EventLogEntryType.Error);
 
                 return true;
             }
@@ -286,6 +289,8 @@ namespace Banking_Application
         
             if (toWithdrawFrom == null)
             {
+                //Log($"Failed to withdraw from account {accNo}: ammount - {amountToWithdraw} at {DateTime.Now}", EventLogEntryType.Error);
+
                 return false;
             }
             bool result = toWithdrawFrom.withdraw(amountToWithdraw);
@@ -306,6 +311,7 @@ namespace Banking_Application
                     command.ExecuteNonQuery();
                 }
 
+                //Log($"Succesfully withdrew from account account {accNo}: ammount - {amountToWithdraw} at {DateTime.Now}", EventLogEntryType.Error);
 
                 return true;
             }
