@@ -139,6 +139,8 @@ namespace Banking_Application
 
            
                 }
+                Log($"Successfyky loaded account {accountNo} at {DateTime.Now}", EventLogEntryType.SuccessAudit);
+
             }
             return null;
 
@@ -199,7 +201,7 @@ namespace Banking_Application
                
 
             }
-            Log($"Bank account {ba.AccountNo} added successfully.");
+            Log($"Bank account {ba.AccountNo} added successfully at {DateTime.Now}");
             return ba.AccountNo;
 
         }
@@ -219,7 +221,7 @@ namespace Banking_Application
                 if (toRemove == null)
                 {
                     // Account not found in the database
-                    Log($"Attempted to close non-existing account {accNo}", EventLogEntryType.Warning);
+                    Log($"Attempted to close non-existing account {accNo} at {DateTime.Now}", EventLogEntryType.Warning);
                     return false;
                 }
                 else
@@ -235,14 +237,14 @@ namespace Banking_Application
                     }
 
 
-                    Log($"Bank account {accNo} closed successfully.");
+                    Log($"Bank account {accNo} closed successfully at {DateTime.Now}.");
 
                     return true;
                 }
             }
             catch (Exception ex)
             {
-                Log($"Error closing account {accNo}: {ex.Message}", EventLogEntryType.Error);
+                Log($"Error closing account {accNo}: {ex.Message} at {DateTime.Now}", EventLogEntryType.Error);
                 return false;
             }
 
@@ -255,6 +257,7 @@ namespace Banking_Application
 
             if (toLodgeTo == null)
             {
+                Log($"Failed to lodge into account {accNo}: {amountToLodge} at {DateTime.Now}", EventLogEntryType.SuccessAudit);
                 return false; // Account not found
             }
             else
@@ -273,8 +276,7 @@ namespace Banking_Application
                     command.ExecuteNonQuery();
                 }
 
-                
-
+                Log($"Successfully lodged into account {accNo}: {amountToLodge} at {DateTime.Now}", EventLogEntryType.SuccessAudit);
                 return true;
             }
         }
@@ -286,6 +288,8 @@ namespace Banking_Application
         
             if (toWithdrawFrom == null)
             {
+                Log($"Failed to lodge from account {accNo}: {amountToWithdraw} at {DateTime.Now}", EventLogEntryType.FailureAudit);
+
                 return false;
             }
             bool result = toWithdrawFrom.withdraw(amountToWithdraw);
@@ -306,6 +310,7 @@ namespace Banking_Application
                     command.ExecuteNonQuery();
                 }
 
+                Log($"Successfully withdrawn from account {accNo}: {amountToWithdraw} at {DateTime.Now}", EventLogEntryType.SuccessAudit);
 
                 return true;
             }
