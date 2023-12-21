@@ -32,14 +32,14 @@ namespace Banking_Application
             }
         }
         //method for logging with ease
-        //private void Log(string message, EventLogEntryType type = EventLogEntryType.Information)
-        //{
-        //    using (EventLog eventLog = new EventLog("Application"))
-        //    {
-        //        eventLog.Source = "MyBankApp";
-        //        eventLog.WriteEntry(message, type);
-        //    }
-        //}
+        private void Log(string message, EventLogEntryType type = EventLogEntryType.Information)
+        {
+            using (EventLog eventLog = new EventLog("Application"))
+            {
+                eventLog.Source = "MyBankApp";
+                eventLog.WriteEntry(message, type);
+            }
+        }
 
         //ddos checking if there is enough disk space
         public static bool IsEnoughDiskSpace(long minRequiredSpace)
@@ -182,7 +182,7 @@ namespace Banking_Application
 
                     // Compare with the stored hash
                     string storedHash = dr.GetString(10);
-                    Console.WriteLine($"Debug - Stored Hash: {storedHash}");
+                    //Console.WriteLine($"Debug - Stored Hash: {storedHash}");
 
                     if (regeneratedHash != storedHash)
                     {
@@ -224,7 +224,7 @@ namespace Banking_Application
             if (!IsEnoughDiskSpace(requiredDiskSpace))
             {
                 Console.WriteLine("There is not sufficient Disk Space to run operation");
-                //Log($"Insufficient disk space to add new bank account {ba.AccountNo} at {DateTime.Now}", EventLogEntryType.Warning);
+                Log($"Insufficient disk space to add new bank account {ba.AccountNo} at {DateTime.Now}", EventLogEntryType.Warning);
                 return null; // or throw an exception
             }
 
@@ -232,7 +232,7 @@ namespace Banking_Application
             if (!IsMemoryUsageAcceptable(maxAllowedMemory))
             {
                 Console.WriteLine("Insufficient Memory to add a new bank account.");
-                //Log($"Insufficient memory space to add new bank account {ba.AccountNo} at {DateTime.Now}", EventLogEntryType.Warning);
+                Log($"Insufficient memory space to add new bank account {ba.AccountNo} at {DateTime.Now}", EventLogEntryType.Warning);
 
                 return null; // or throw an exception
             }
@@ -294,7 +294,7 @@ namespace Banking_Application
                
 
             }
-            //Log($"Bank account {ba.AccountNo} added successfully at {DateTime.Now}.", EventLogEntryType.SuccessAudit);
+            Log($"Bank account {ba.AccountNo} added successfully at {DateTime.Now}.", EventLogEntryType.SuccessAudit);
             return ba.AccountNo;
 
         }
@@ -313,7 +313,7 @@ namespace Banking_Application
 
             if (!IsEnoughDiskSpace(requiredSpace))
             {
-                //Log($"Insufficient disk space to close bank account at {DateTime.Now}", EventLogEntryType.Warning);
+                Log($"Insufficient disk space to close bank account at {DateTime.Now}", EventLogEntryType.Warning);
                 return false; // or throw an exception
             }
 
@@ -321,7 +321,7 @@ namespace Banking_Application
             if (!IsMemoryUsageAcceptable(maxAllowedMemory))
             {
                 Console.WriteLine("Insufficient Memory to add a new bank account.");
-                //Log($"Insufficient memory space to add new bank account {ba.AccountNo} at {DateTime.Now}", EventLogEntryType.Warning);
+                Log($"Insufficient memory space to add new bank account {accNo} at {DateTime.Now}", EventLogEntryType.Warning);
 
                 return false; // or throw an exception
             }
@@ -351,14 +351,14 @@ namespace Banking_Application
                     }
 
 
-                    //Log($"Bank account {accNo} closed successfully at {DateTime.Now}.");
+                    Log($"Bank account {accNo} closed successfully at {DateTime.Now}.");
 
                     return true;
                 }
             }
             catch (Exception ex)
             {
-                //Log($"Error closing account {accNo}: {ex.Message} at {DateTime.Now}", EventLogEntryType.Error);
+                Log($"Error closing account {accNo}: {ex.Message} at {DateTime.Now}", EventLogEntryType.Error);
                 return false;
             }
 
@@ -372,7 +372,7 @@ namespace Banking_Application
 
             if (!IsEnoughDiskSpace(requiredSpace))
             {
-                //Log($"Insufficient disk space to lodge to bank account {accNo} at {DateTime.Now}", EventLogEntryType.Warning);
+                Log($"Insufficient disk space to lodge to bank account {accNo} at {DateTime.Now}", EventLogEntryType.Warning);
                 return false; // or throw an exception
             }
 
@@ -380,7 +380,7 @@ namespace Banking_Application
             if (!IsMemoryUsageAcceptable(maxAllowedMemory))
             {
                 Console.WriteLine("Insufficient Memory to add a new bank account.");
-                //Log($"Insufficient memory space to add new bank account {ba.AccountNo} at {DateTime.Now}", EventLogEntryType.Warning);
+                Log($"Insufficient memory space to add new bank account {accNo} at {DateTime.Now}", EventLogEntryType.Warning);
 
                 return false; // or throw an exception
             }
@@ -390,7 +390,7 @@ namespace Banking_Application
 
             if (toLodgeTo == null)
             {
-                //Log($"Failed to lodge into account {accNo}: ammount - {amountToLodge} at {DateTime.Now}", EventLogEntryType.Error);
+                Log($"Failed to lodge into account {accNo}: ammount - {amountToLodge} at {DateTime.Now}", EventLogEntryType.Error);
                 return false; // Account not found
             }
             else
@@ -410,7 +410,7 @@ namespace Banking_Application
                 }
 
 
-                //Log($"Succesfully lodged into account {accNo}: ammount - {amountToLodge} at {DateTime.Now}", EventLogEntryType.Error);
+                Log($"Succesfully lodged into account {accNo}: ammount - {amountToLodge} at {DateTime.Now}", EventLogEntryType.Error);
 
                 return true;
             }
@@ -425,7 +425,7 @@ namespace Banking_Application
 
             if (!IsEnoughDiskSpace(requiredSpace))
             {
-                //Log($"Insufficient disk space to withdraw from bank account {accNo} at {DateTime.Now}", EventLogEntryType.Warning);
+                Log($"Insufficient disk space to withdraw from bank account {accNo} at {DateTime.Now}", EventLogEntryType.Warning);
                 return false; // or throw an exception
             }
 
@@ -433,7 +433,7 @@ namespace Banking_Application
             if (!IsMemoryUsageAcceptable(maxAllowedMemory))
             {
                 Console.WriteLine("Insufficient Memory to add a new bank account.");
-                //Log($"Insufficient memory space to add new bank account {ba.AccountNo} at {DateTime.Now}", EventLogEntryType.Warning);
+                Log($"Insufficient memory space to add new bank account {accNo} at {DateTime.Now}", EventLogEntryType.Warning);
 
                 return false; // or throw an exception
             }
@@ -443,7 +443,7 @@ namespace Banking_Application
         
             if (toWithdrawFrom == null)
             {
-                //Log($"Failed to withdraw from account {accNo}: ammount - {amountToWithdraw} at {DateTime.Now}", EventLogEntryType.Error);
+                Log($"Failed to withdraw from account {accNo}: ammount - {amountToWithdraw} at {DateTime.Now}", EventLogEntryType.Error);
 
                 return false;
             }
@@ -468,7 +468,7 @@ namespace Banking_Application
                 }
 
 
-                //Log($"Succesfully withdrew from account account {accNo}: ammount - {amountToWithdraw} at {DateTime.Now}", EventLogEntryType.Error);
+                Log($"Succesfully withdrew from account account {accNo}: ammount - {amountToWithdraw} at {DateTime.Now}", EventLogEntryType.Error);
 
                 return true;
             }
