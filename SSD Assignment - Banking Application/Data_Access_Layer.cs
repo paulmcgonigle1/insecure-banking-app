@@ -12,12 +12,7 @@ namespace Banking_Application
 {
     public class Data_Access_Layer
     {
-        //nowow need to inject key and encryption services
-        //2. Modify Data storage and retrieval for 'addbankaccount' and 'loadbankaccount'
-        //3. Secure key and iv storage
-        //4. Error handling
-        //5. Logging operations
-
+    
         //private List<Bank_Account> accounts;
         public static String databaseName = "Banking Database.db";
         private static Data_Access_Layer instance;
@@ -172,10 +167,10 @@ namespace Banking_Application
                     string encryptedAddressLine2 = dr.GetString(3);
                     string encryptedAddressLine3 = dr.GetString(4);
                     string encryptedTown = dr.GetString(5);
-                    double balance = dr.GetDouble(6);
+                    string encryptedBalance = dr.GetString(6); // Fetch the encrypted balance as a string
 
-                    // Use encrypted data for hash generation
-                    string loadedData = $"{encryptedName}{encryptedAddressLine1}{encryptedAddressLine2}{encryptedAddressLine3}{encryptedTown}{balance}";
+                            // Use encrypted data for hash generation
+                    string loadedData = $"{encryptedName}{encryptedAddressLine1}{encryptedAddressLine2}{encryptedAddressLine3}{encryptedTown}{encryptedBalance}";
                     string regeneratedHash = HashUtility.GenerateHash(loadedData);
 
                    
@@ -197,17 +192,28 @@ namespace Banking_Application
                     string decryptedTown = Encoding.UTF8.GetString(encryptionService.Decrypt(Convert.FromBase64String(encryptedTown)));
 
                     int accountType = dr.GetInt16(7);
-                     
+                    byte[] balanceBytes = Convert.FromBase64String(encryptedBalance);
+                    string decryptedBalanceString = Encoding.UTF8.GetString(encryptionService.Decrypt(balanceBytes));
+                    double balance = double.Parse(decryptedBalanceString);
+                    Bank_Account account;
+
                     if (accountType == Account_Type.Current_Account)
                     {
-                        double overdraftAmount = dr.GetDouble(8);
-                        return new Current_Account(decryptedName, decryptedAddressLine1, decryptedAddressLine2, decryptedAddressLine3, decryptedTown, balance, overdraftAmount);
+                    double overdraftAmount = dr.GetDouble(8);
+                    account = new Current_Account(decryptedName, decryptedAddressLine1, decryptedAddressLine2, decryptedAddressLine3, decryptedTown, balance, overdraftAmount);
                     }
                     else
                     {
-                        double interestRate = dr.GetDouble(9);
-                        return new Savings_Account(decryptedName, decryptedAddressLine1, decryptedAddressLine2, decryptedAddressLine3, decryptedTown, balance, interestRate);
+                    double interestRate = dr.GetDouble(9);
+                    account = new Savings_Account(decryptedName, decryptedAddressLine1, decryptedAddressLine2, decryptedAddressLine3, decryptedTown, balance, interestRate);
                     }
+
+                            //Update encrypted fields
+                    account.UpdateEncryptedFields(encryptedName, encryptedAddressLine1, encryptedAddressLine2, encryptedAddressLine3, encryptedTown, encryptedBalance);
+
+                    return account;
+
+
                 }
             } 
         }
@@ -256,9 +262,10 @@ namespace Banking_Application
                 string encryptedAddressLine2 = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.Address_Line_2)));
                 string encryptedAddressLine3 = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.Address_Line_3)));
                 string encryptedTown = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.Town)));
+                string encryptedBalance = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(ba.Balance.ToString())));
 
                 // Generate a hash of the account data
-                string accountData = $"{encryptedName}{encryptedAddressLine1}{encryptedAddressLine2}{encryptedAddressLine3}{encryptedTown}{ba.Balance}";
+                string accountData = $"{encryptedName}{encryptedAddressLine1}{encryptedAddressLine2}{encryptedAddressLine3}{encryptedTown}{encryptedBalance}";
                 string dataHash = HashUtility.GenerateHash(accountData);
                
                 command.CommandText = @"
@@ -272,7 +279,7 @@ namespace Banking_Application
                 command.Parameters.AddWithValue("@AddressLine2", encryptedAddressLine2);
                 command.Parameters.AddWithValue("@AddressLine3", encryptedAddressLine3);
                 command.Parameters.AddWithValue("@Town", encryptedTown);
-                command.Parameters.AddWithValue("@Balance", ba.Balance);
+                command.Parameters.AddWithValue("@Balance", encryptedBalance);
                 command.Parameters.AddWithValue("@DataHash", dataHash); // Add the hash as a parameter
 
                 if (ba.GetType() == typeof(Current_Account))
@@ -397,15 +404,27 @@ namespace Banking_Application
             {
                 // Perform the lodgment
                 toLodgeTo.lodge(amountToLodge);
+                // Encrypt the updated balance
+
+                // Encrypt the updated balance
+                string encryptedBalance = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(toLodgeTo.Balance.ToString())));
+
+                // Update the encrypted balance in the account object
+                toLodgeTo.EncryptedBalance = encryptedBalance;
+
+                // Generate a new hash for the updated data
+                string updatedData = $"{toLodgeTo.EncryptedName}{toLodgeTo.EncryptedAddressLine1}{toLodgeTo.EncryptedAddressLine2}{toLodgeTo.EncryptedAddressLine3}{toLodgeTo.EncryptedTown}{encryptedBalance}";
+                string updatedHash = HashUtility.GenerateHash(updatedData);
 
                 // Update the account balance in the database
                 using (var connection = getDatabaseConnection())
                 {
                     connection.Open();
                     var command = connection.CreateCommand();
-                    command.CommandText = "UPDATE Bank_Accounts SET balance = @balance WHERE accountNo = @accountNo";
-                    command.Parameters.AddWithValue("@balance", toLodgeTo.Balance);
-                    command.Parameters.AddWithValue("@accountNo", accNo); // Use parameterized query for security
+                    command.CommandText = "UPDATE Bank_Accounts SET balance = @balance, dataHash = @dataHash WHERE accountNo = @accountNo";
+                    command.Parameters.AddWithValue("@balance", encryptedBalance);
+                    command.Parameters.AddWithValue("@dataHash", updatedHash);
+                    command.Parameters.AddWithValue("@accountNo", accNo);
                     command.ExecuteNonQuery();
                 }
 
@@ -454,21 +473,29 @@ namespace Banking_Application
             }
             else
             {
-                // Update the account balance in the database
+                // Encrypt the updated balance
+                string encryptedBalance = Convert.ToBase64String(encryptionService.Encrypt(Encoding.UTF8.GetBytes(toWithdrawFrom.Balance.ToString())));
+
+                // Update the encrypted balance in the account object
+                toWithdrawFrom.EncryptedBalance = encryptedBalance;
+
+                // Generate a new hash for the updated data
+                string updatedData = $"{toWithdrawFrom.EncryptedName}{toWithdrawFrom.EncryptedAddressLine1}{toWithdrawFrom.EncryptedAddressLine2}{toWithdrawFrom.EncryptedAddressLine3}{toWithdrawFrom.EncryptedTown}{encryptedBalance}";
+                string updatedHash = HashUtility.GenerateHash(updatedData);
+
+                // Update the account balance and hash in the database
                 using (var connection = getDatabaseConnection())
                 {
                     connection.Open();
                     var command = connection.CreateCommand();
-                    command.CommandText = "UPDATE Bank_Accounts SET balance = @balance WHERE accountNo = @accountNo";
-                    command.Parameters.AddWithValue("@balance", toWithdrawFrom.Balance);
-                    command.Parameters.AddWithValue("@accountNo", accNo); // Use parameterized query for security
+                    command.CommandText = "UPDATE Bank_Accounts SET balance = @balance, dataHash = @dataHash WHERE accountNo = @accountNo";
+                    command.Parameters.AddWithValue("@balance", encryptedBalance);
+                    command.Parameters.AddWithValue("@dataHash", updatedHash);
+                    command.Parameters.AddWithValue("@accountNo", accNo);
                     command.ExecuteNonQuery();
-
-
                 }
 
-
-                Log($"Succesfully withdrew from account account {accNo}: ammount - {amountToWithdraw} at {DateTime.Now}", EventLogEntryType.Error);
+                Log($"Successfully withdrew from account {accNo}: amount - {amountToWithdraw} at {DateTime.Now}", EventLogEntryType.Information);
 
                 return true;
             }

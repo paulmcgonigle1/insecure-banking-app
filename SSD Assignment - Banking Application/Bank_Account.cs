@@ -58,6 +58,14 @@ namespace Banking_Application
             get { return _balance; }
             protected set { _balance = value; }
         }
+        // Encrypted fields for internal use
+        internal string EncryptedName { get; set; }
+        internal string EncryptedAddressLine1 { get; set; }
+        internal string EncryptedAddressLine2 { get; set; }
+        internal string EncryptedAddressLine3 { get; set; }
+        internal string EncryptedTown { get; set; }
+        internal string EncryptedBalance { get; set; }
+
 
         public Bank_Account()
         {
@@ -83,6 +91,16 @@ namespace Banking_Application
         }
 
         public abstract bool withdraw(double amountToWithdraw);
+
+        internal void UpdateEncryptedFields(string encryptedName, string encryptedAddressLine1, string encryptedAddressLine2, string encryptedAddressLine3, string encryptedTown, string encryptedBalance)
+        {
+            EncryptedName = encryptedName;
+            EncryptedAddressLine1 = encryptedAddressLine1;
+            EncryptedAddressLine2 = encryptedAddressLine2;
+            EncryptedAddressLine3 = encryptedAddressLine3;
+            EncryptedTown = encryptedTown;
+            EncryptedBalance = encryptedBalance;
+        }
 
         public abstract double getAvailableFunds();
 
