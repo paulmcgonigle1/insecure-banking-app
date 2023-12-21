@@ -163,7 +163,7 @@ namespace Banking_Application
                                 Console.WriteLine("Enter Overdraft Amount: ");
                                 String overdraftAmountString = Console.ReadLine();
 
-                                // Check if the input can be parsed to a double and if it's non-negative
+                                // to check if the input can be parsed to a double and if it's non-negative
                                 if (!double.TryParse(overdraftAmountString, out overdraftAmount) || overdraftAmount < 0)
                                 {
                                     Console.WriteLine("Please enter a valid, non-negative overdraft amount.");
@@ -175,7 +175,7 @@ namespace Banking_Application
                                     break;
                                 }
 
-                            } while (true); // looping indefinitely until valid input is provided
+                            } while (true); // looping  until valid input is provided
 
                             ba = new Current_Account(name, addressLine1, addressLine2, addressLine3, town, balance, overdraftAmount);
                         }
@@ -209,12 +209,12 @@ namespace Banking_Application
 
                         if (!string.IsNullOrEmpty(accNo))
                         {
-                            // The account was added successfully, print the account number
+                            
                             Console.WriteLine("New Account Number Is: " + accNo);
                         }
                         else
                         {
-                            // The account was not added, handle the failure (e.g., print an error message)
+                            
                             Console.WriteLine("Failed to add a new account.");
                         }
                         break;
@@ -268,7 +268,7 @@ namespace Banking_Application
                         if (string.IsNullOrWhiteSpace(accNo))
                         {
                             Console.WriteLine("Account number cannot be empty.");
-                            break; // or continue to prompt for input
+                            break; 
                         }
                         ba = dal.loadBankAccount(accNo);
 
@@ -288,7 +288,7 @@ namespace Banking_Application
                         if (string.IsNullOrWhiteSpace(accNo))
                         {
                             Console.WriteLine("Account number cannot be empty.");
-                            break; // or continue to prompt for input
+                            break; 
                         }
                         ba = dal.loadBankAccount(accNo);
 

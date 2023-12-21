@@ -15,17 +15,15 @@ namespace SSD_Assignment___Banking_Application
                 CngKeyCreationParameters key_creation_parameters = new CngKeyCreationParameters
                 {
                     Provider = key_storage_provider,
-                    // Additional parameters can be set here
                 };
 
-                // Create a new key
+                // create a new key
                 CngKey.Create(new CngAlgorithm("AES"), crypto_key_name, key_creation_parameters);
             }
 
-            // Return a new AesCng instance using the key
+            // returning a new AesCng instance using the key
             return new AesCng(crypto_key_name, key_storage_provider);
         }
 
-        // Additional methods for key management can be added here
     }
 }

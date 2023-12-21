@@ -85,12 +85,12 @@ namespace Banking_Application
             }
         }
 
-        private Data_Access_Layer()//Singleton Design Pattern (For Concurrency Control) - Use getInstance() Method Instead.
+        private Data_Access_Layer()
         {
             initialiseDatabase(); // Ensure the database and table are initialized
 
             //accounts = new List<Bank_Account>();
-            KeyManagementService keyManagementService = new KeyManagementService(/* any required parameters */);
+            KeyManagementService keyManagementService = new KeyManagementService();
             encryptionService = new EncryptionService(keyManagementService); // Properly initialized here
         }
 
@@ -152,13 +152,15 @@ namespace Banking_Application
     {
         using (var connection = getDatabaseConnection())
         {
+
             connection.Open();
             var command = connection.CreateCommand();
             command.CommandText = "SELECT * FROM Bank_Accounts WHERE AccountNo = @accountNo";
             command.Parameters.AddWithValue("@accountNo", accountNo);
-
+            
             using (SqliteDataReader dr = command.ExecuteReader())
             {
+
                 if (dr.Read())
                 {
                     // Read encrypted data directly
@@ -167,9 +169,9 @@ namespace Banking_Application
                     string encryptedAddressLine2 = dr.GetString(3);
                     string encryptedAddressLine3 = dr.GetString(4);
                     string encryptedTown = dr.GetString(5);
-                    string encryptedBalance = dr.GetString(6); // Fetch the encrypted balance as a string
+                    string encryptedBalance = dr.GetString(6); 
 
-                            // Use encrypted data for hash generation
+                            // use encrypted data for hash generation
                     string loadedData = $"{encryptedName}{encryptedAddressLine1}{encryptedAddressLine2}{encryptedAddressLine3}{encryptedTown}{encryptedBalance}";
                     string regeneratedHash = HashUtility.GenerateHash(loadedData);
 
@@ -208,7 +210,7 @@ namespace Banking_Application
                     account = new Savings_Account(decryptedName, decryptedAddressLine1, decryptedAddressLine2, decryptedAddressLine3, decryptedTown, balance, interestRate);
                     }
 
-                            //Update encrypted fields
+                    //Update encrypted fields to be able to use with lodge and withdraw
                     account.UpdateEncryptedFields(encryptedName, encryptedAddressLine1, encryptedAddressLine2, encryptedAddressLine3, encryptedTown, encryptedBalance);
 
                     return account;
@@ -223,15 +225,16 @@ namespace Banking_Application
 
         public String addBankAccount(Bank_Account ba)
         {
+            //setting checks
             const long requiredDiskSpace = 500; // bytes
-            const long maxAllowedMemory = 1000000000; // Example: 1 GB
+            const long maxAllowedMemory = 1000000000; //  1 GB to test
 
             //checking disk space
             if (!IsEnoughDiskSpace(requiredDiskSpace))
             {
                 Console.WriteLine("There is not sufficient Disk Space to run operation");
                 Log($"Insufficient disk space to add new bank account {ba.AccountNo} at {DateTime.Now}", EventLogEntryType.Warning);
-                return null; // or throw an exception
+                return null; 
             }
 
             // Check memory usage
@@ -240,7 +243,7 @@ namespace Banking_Application
                 Console.WriteLine("Insufficient Memory to add a new bank account.");
                 Log($"Insufficient memory space to add new bank account {ba.AccountNo} at {DateTime.Now}", EventLogEntryType.Warning);
 
-                return null; // or throw an exception
+                return null; 
             }
 
 
@@ -280,7 +283,7 @@ namespace Banking_Application
                 command.Parameters.AddWithValue("@AddressLine3", encryptedAddressLine3);
                 command.Parameters.AddWithValue("@Town", encryptedTown);
                 command.Parameters.AddWithValue("@Balance", encryptedBalance);
-                command.Parameters.AddWithValue("@DataHash", dataHash); // Add the hash as a parameter
+                command.Parameters.AddWithValue("@DataHash", dataHash); // Adding the hash as a parameter
 
                 if (ba.GetType() == typeof(Current_Account))
                 {
@@ -297,7 +300,6 @@ namespace Banking_Application
 
 
                 command.ExecuteNonQuery();
-                // Log the successful addition of a bank account
                
 
             }
@@ -314,7 +316,7 @@ namespace Banking_Application
 
         public bool closeBankAccount(String accNo) 
         {
-            // Disk space check
+            // another space check
             long requiredSpace = 500;
             const long maxAllowedMemory = 1000000000; // Example: 1 GB
 
@@ -438,14 +440,14 @@ namespace Banking_Application
         public bool withdraw(String accNo, double amountToWithdraw)
         {
 
-            // Disk space check
+            // another space check
             long requiredSpace = 500;
-            const long maxAllowedMemory = 1000000000; // Example: 1 GB
+            const long maxAllowedMemory = 1000000000; 
 
             if (!IsEnoughDiskSpace(requiredSpace))
             {
                 Log($"Insufficient disk space to withdraw from bank account {accNo} at {DateTime.Now}", EventLogEntryType.Warning);
-                return false; // or throw an exception
+                return false; 
             }
 
             // Check memory usage
@@ -454,7 +456,7 @@ namespace Banking_Application
                 Console.WriteLine("Insufficient Memory to add a new bank account.");
                 Log($"Insufficient memory space to add new bank account {accNo} at {DateTime.Now}", EventLogEntryType.Warning);
 
-                return false; // or throw an exception
+                return false; 
             }
 
 
@@ -469,7 +471,7 @@ namespace Banking_Application
             bool result = toWithdrawFrom.withdraw(amountToWithdraw);
             if (!result)
             {
-                return false; // Withdrawal failed (e.g., insufficient funds)
+                return false; 
             }
             else
             {

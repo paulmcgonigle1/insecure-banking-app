@@ -14,7 +14,7 @@ namespace SSD_Assignment___Banking_Application
             this.keyManagementService = keyManagementService;
         }
 
-        // Encrypts plaintext data using the AES instance from KeyManagementService.
+        // encrypts the plaintext data using the AES instance from KeyManagementService.
         public byte[] Encrypt(byte[] plaintextData)
         {
             using (var aes = keyManagementService.InitializeKey())
@@ -40,7 +40,7 @@ namespace SSD_Assignment___Banking_Application
             }
         }
 
-        // Decrypts ciphertext data using the AES instance from KeyManagementService.
+        // decryopts ciphertext data using the AES instance from KeyManagementService.
         public byte[] Decrypt(byte[] ciphertextData)
         {
             using (var aes = keyManagementService.InitializeKey())

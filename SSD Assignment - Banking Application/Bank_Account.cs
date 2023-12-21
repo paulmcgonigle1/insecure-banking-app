@@ -58,7 +58,7 @@ namespace Banking_Application
             get { return _balance; }
             protected set { _balance = value; }
         }
-        // Encrypted fields for internal use
+        // Encrypted fields for internal use so that i can do lodge and withdraw with hash checking
         internal string EncryptedName { get; set; }
         internal string EncryptedAddressLine1 { get; set; }
         internal string EncryptedAddressLine2 { get; set; }

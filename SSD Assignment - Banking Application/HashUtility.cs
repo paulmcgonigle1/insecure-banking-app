@@ -10,7 +10,7 @@ namespace SSD_Assignment___Banking_Application
     public static class HashUtility
     {
         
-        // Method to generate a hash for a given string
+        //  to generate a hash for a given string
         public static string GenerateHash(string input)
         {
             using (SHA256 sha256 = SHA256.Create())
@@ -21,7 +21,7 @@ namespace SSD_Assignment___Banking_Application
         }
 
       
-        // Optionally, you can add a method to verify a hash, if needed
+        //  method to verify a hash
         public static bool VerifyHash(string input, string hash)
         {
             string computedHash = GenerateHash(input);
